@@ -46,7 +46,8 @@ def init_connection():
   db_user="usr_vikua_db"
   db_pass="Vikua2024"
   return sql.connect(host=db_host, database=db, user=db_user, password=db_pass)
-conn = init_connection()
+# conn = init_connection()
+conn = st.connection("postgresql", type="sql")
 
 # condicion para guardar el rif en la sesion para demas consultas en otros modulos
 if RIF:
