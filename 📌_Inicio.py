@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import streamlit as st
 import psycopg2 as sql
 import pandas as pd
@@ -242,5 +243,3 @@ if 'RIF' in st.session_state:
 
 else:
   formato(string=text1, h = 'h5', txt='Nota: RIF de prueba para consultar: 402137826 246644108 298101105 298643986')
-
-  
