@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import streamlit as st
 import psycopg2 as sql
 import pandas as pd
