@@ -44,19 +44,11 @@ with col3:
     formato(string=text1, h='h4', txt='#️⃣RIF:➖')
     
 # data base connection
-@st.cache_resource
-def init_connection():
-  db="vikua"
-  db_host="172.16.201.11" #10.212.134.9
-  db_user="usr_vikua_db"
-  db_pass="Vikua2024"
-  return sql.connect(host=db_host, database=db, user=db_user, password=db_pass)
-conn = init_connection()
+conn = st.connection("postgresql", type="sql")
 
 # condicion para realizar consulta
 if 'RIF' in st.session_state:
   query='''
-  CREATE TEMPORARY TABLE temp_table as
     select
         distinct trim(c000ndoc) as rif,
         trim(c011ndoc) as cedula,
@@ -67,31 +59,30 @@ if 'RIF' in st.session_state:
       where
         trim(c000ndoc) = cast({RIF} AS TEXT) '''
   query = query.format(RIF=st.session_state['RIF'])
-  cur = conn.cursor()
-  cur.execute(query)
+  df_acci = conn.query(query, ttl='10m')
   
-  query='''
-  select
-      distinct table1.rif,
-      table1.cedula,
-      concat(
-        trim(table2.c020nom1),' ',trim(table2.c020nom4)
-        ) as nombre,
-      case when trim(table3.c036ndfi) IS NULL THEN 0 ELSE 1 END as fir,
-      table1.acci,
-      table1.prop_acci
-    from
-      temp_table table1
-    left join
-      dcclf020 table2 on table1.cedula = trim(table2.c000ndoc)
-    left join
-      dcclf036 table3 on table1.cedula = trim(table3.c036ndfi)'''
-      
-  base_firm = pd.read_sql(query, conn)
-  cur.execute("DROP TABLE temp_table")
+  if not df_acci.empty:
+    query='''
+    select
+        distinct trim(table1.c000ndoc) as ci,
+        concat(
+          trim(table1.c020nom1),' ',trim(table1.c020nom4)
+          ) as nombre,
+        case when trim(table2.c036ndfi) IS NULL THEN 0 ELSE 1 END as fir
+      from
+        dcclf020 table1
+      left join 
+        dcclf036 table2 on trim(table1.c000ndoc) = trim(table2.c036ndfi)
+      where
+        trim(table1.c000ndoc) in ({ci})'''
+        
+    ci = list(map(lambda x: "'{x}'".format(x=x), df_acci['cedula'].to_list()))
+    ci = ', '.join(ci)
+    query = query.format(ci=ci)
+    df_acci2 = conn.query(query, ttl='10m')
+    base_firm = df_acci.merge(df_acci2, how = 'left', left_on = 'cedula', right_on='ci')
   
-  # mostramos resultado de consulta de firmantes de la empresa
-  if not base_firm.empty:
+    # mostramos resultado de consulta de firmantes de la empresa
     formato(string=text1, h='h4', txt='🖋️ Firmantes de la Empresa')
     with st.container(border=True):
       col1, col2, col3, col4 = st.columns(4)
@@ -144,7 +135,9 @@ with st.container(border=True):
       st.session_state['CI'] = CI
     else:
       formato(string=text1, h='h4', txt='⛔ Numero de Cedula: {CI} invalido, Ingrese solo numero'.format(CI=CI))
-  
+      if 'CI' in st.session_state:
+        del st.session_state['CI']
+      
   if 'CI' in st.session_state:
     query='''
     select
@@ -169,7 +162,7 @@ with st.container(border=True):
         trim(table1.c011ndoc) = cast({CI} AS TEXT)'''
         
     query = query.format(CI=st.session_state['CI'])
-    base_firm_client = pd.read_sql(query, conn)
+    base_firm_client = conn.query(query, ttl='10m')
     
     if not base_firm_client.empty:
       try:
@@ -187,3 +180,5 @@ with st.container(border=True):
       st.dataframe(
         df,
         column_config={'nombre_empresa': 'Empresa','rif':'RIF','fir':'Firmante','porcen_acc': '% Acciones'})
+    else:
+      formato(string=text1, h='h4', txt='Sin información para #️⃣CI: {}'.format(st.session_state['CI']))

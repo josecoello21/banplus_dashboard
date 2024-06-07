@@ -56,14 +56,7 @@ else:
     formato(string=text1, h='h4', txt='➖')
 
 # data base connection
-@st.cache_resource
-def init_connection():
-  db="vikua"
-  db_host="172.16.201.11" #10.212.134.9
-  db_user="usr_vikua_db"
-  db_pass="Vikua2024"
-  return sql.connect(host=db_host, database=db, user=db_user, password=db_pass)
-conn = init_connection()
+conn = st.connection("postgresql", type="sql")
 
 # configuracion de valores para construir slider user input fecha
 fecha = datetime.datetime.now()
@@ -120,7 +113,7 @@ if 'cuentas_cli' in st.session_state:
     ) t(id) on t.id = v001uuid'''
     
   query = query.format(saldo_fields=saldo_fields, txt=key)
-  saldos = pd.read_sql(query, conn)
+  saldos = conn.query(query, ttl='10m')
   cuentas_cli = st.session_state['cuentas_cli'].merge(saldos, how='left', on='key')
   
   var_saldo = saldo_fields.split(' ')
@@ -145,7 +138,7 @@ if 'cuentas_cli' in st.session_state:
     where
       region = cast('{region}' AS TEXT)'''
   query=query.format(saldos=var_saldo2, region=st.session_state['region'])
-  saldos_region=pd.read_sql(query, conn)
+  saldos_region=conn.query(query, ttl='10m')
   saldos_region=saldos_region[['cuenta']+var_saldo].melt(id_vars='cuenta', var_name='mes', value_name='saldo')
   saldos_region=saldos_region.groupby('cuenta').mean('saldo')
   saldos_region=saldos_region.reset_index()
@@ -169,7 +162,7 @@ if 'cuentas_cli' in st.session_state:
       group by
         substring(rif, 3, 20), mes, region'''.format(rif=st.session_state['RIF'], mes=mes)
         
-    pos_client = pd.read_sql(query, conn)
+    pos_client = conn.query(query, ttl='10m')
     pos_client = pos_client.groupby('region')['monto_tx'].mean()
     pos_client = pos_client.reset_index()
     
@@ -189,7 +182,7 @@ if 'cuentas_cli' in st.session_state:
       group by
         mes, region'''.format(region=st.session_state['region'], mes=mes)
     
-    pos_region = pd.read_sql(query, conn)
+    pos_region = conn.query(query, ttl='10m')
     pos_region = pos_region.groupby('region')['monto_tx'].mean()
     pos_region = pos_region.reset_index()
     
@@ -289,7 +282,7 @@ if 'client_prod' in st.session_state:
   query='''
   select *
       from tabla_uso'''
-  tabla_uso = pd.read_sql(query, conn)
+  tabla_uso = conn.query(query, ttl='10m')
   tabla_uso = tabla_uso.fillna(0)
   try:
     # filtramos por la region del cliente
