@@ -6,30 +6,54 @@ from funciones.funciones import *
 
 # streamlit run 📌_Inicio.py
 
-st.set_page_config(page_title="Productos y Servicios", page_icon="🚦")
+st.set_page_config(page_title="Productos y Servicios", page_icon="🚦",layout="wide")
 
-# Set the background image
-background()
+# margin top
+st.markdown("<style> div[class^='block-container'] { padding-top: 2rem; } </style>", 
+            unsafe_allow_html=True)
+
+# set footer
+footer = """<style>.footer {
+  position: fixed; left: 0.2; bottom: 0; width: 100%; height: 5%;
+  background:linear-gradient(to right, #69be28, #bed600);
+  float:left;}
+  .size{
+    width:6vw;
+    height:5vh;
+    float: left;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    margin-left: 20px;}
+  </style>
+  <div class='footer'><p><img class='size' src="https://storage.googleapis.com/vikua-styles/banplus-styles/logo_banplus_blanco.png"/></p>
+  </div>
+"""
+st.markdown(footer, unsafe_allow_html=True)
 
 # set sidebar
 sidebar()
 
 # text format
-text1 = "<{h} style='text-align: left; color: #000058;'>{txt}</{h}>"
-text2 = '<span style="color:#000058">**{txt}** {value}</span>'
-text3 = '<span style="color:#000058">{txt}</span>'
+text1 = "<{h} style='text-align: left; color: #00204E;'>{txt}</{h}>"
+text2 = '<span style="color:#00204E">**{txt}** {value}</span>'
+text3 = '<span style="color:#00204E">{txt}</span>'
 
 # main screen
 col1, col2 = st.columns(2)
 with col1:
-  formato(string=text1, h='h1', txt="Vicepresidencia de Estrategia y Administración🔎")
-  formato(string=text1, h='h3', txt='Control de Gestión')
-  
+  st.image('https://storage.googleapis.com/vikua-styles/banplus-styles/banplus2.png')
 with col2:
-  st.image('static/banplus2.png',use_column_width = True)
+  header = """
+  <style>.img{
+    float: right;
+  }
+  </style>
+  <p><img class = 'img' src='https://storage.googleapis.com/vikua-styles/banplus-styles/header.jpg'></p>"""
+  st.markdown(header, unsafe_allow_html=True)
   
-col1, col2, col3 = st.columns(3)
+st.title("Tablero de Control de Gestión")
 
+col1, col2, col3 = st.columns(3)
 with col1:
   formato(string=text1, h='h4', txt='Nombre Cliente:')
   
@@ -70,24 +94,32 @@ else:
   meses = list(range(mes,13))+list(range(1,mes))
   years = [year-1]*len(range(mes,13)) + [year]*len(range(1,mes))
   
-start = datetime.datetime(years[0],meses[0],1)
-end = datetime.datetime(years[-1],meses[-1],1)
-rango = (datetime.datetime(years[-3],meses[-3],1), datetime.datetime(years[-1],meses[-1],1))
+vector = ['{mes}-{year}'.format(mes=meses[i], year=years[i]) for i in range(len(meses))]
 
 # condicion para realizar la consulta de cuentas (el rif ingresado debe tener asociada cuentas con el banco)
 if 'cuentas_cli' in st.session_state:
+  # hidden footer
+  hide_footer_style = """
+  <style>
+  .footer {
+  display: none;
+  }
+  </style>
+  """
+  st.markdown(hide_footer_style, unsafe_allow_html=True)
+  
   # slider user input date
-  col1, col2 = st.columns(2)
+  col1, col2, col3, col4 = st.columns(4)
   with col1:
     st.write('\n')
     st.write('\n')
     st.write('\n')
-    formato(string=text1, h='h5', txt='📅Rango fecha a consultar')
-    time = st.slider('',start, end, rango, format="YYYY/MM/DD")
+    time = st.select_slider(label=r"$\textsf{\large 📅 Rango fecha a consultar}$",
+                            options=vector, value=(vector[-3],vector[-1]))
 
   # rango seleccionado
-  mes_ini = time[0].month
-  mes_fin = time[1].month
+  mes_ini = int(time[0].split('-')[0])
+  mes_fin = int(time[1].split('-')[0])
   
   if mes_ini<=mes_fin:
     select_month = meses[meses.index(mes_ini):(meses.index(mes_fin)+1)]
@@ -120,7 +152,7 @@ if 'cuentas_cli' in st.session_state:
   var_saldo = list(filter(lambda x: 'saldo' in x, var_saldo))
   var_saldo = [i.replace(',','') for i in var_saldo]
   
-  cuentas_cli = cuentas_cli.groupby('cuenta').sum(var_saldo)
+  cuentas_cli = cuentas_cli.groupby('cuenta')[var_saldo].sum()
   cuentas_cli = cuentas_cli.reset_index()
   cuentas_cli = cuentas_cli.melt(id_vars='cuenta', var_name='mes', value_name='saldo')
   cuentas_cli = cuentas_cli.groupby('cuenta')['saldo'].mean()
@@ -144,55 +176,59 @@ if 'cuentas_cli' in st.session_state:
   saldos_region=saldos_region.reset_index()
   
   # consulta del producto POS para anexar el resultado
-  try:
+  mes = list(map(lambda x: str(int(x[-2:])), var_saldo))
+  mes = list(map(lambda x: "'{x}'".format(x=x), mes))
+  mes = ', '.join(mes)
+  if 'POS' in st.session_state:
     # consulta de facturacion POS cliente
-    mes = list(map(lambda x: str(int(x[-2:])), var_saldo))
-    mes = list(map(lambda x: "'{x}'".format(x=x), mes))
-    mes = ', '.join(mes)
-    query='''
-    select
-        substring(rif, 3, 20) as rif,
-        mes,
-        region,
-        avg(cast(mto_trs AS NUMERIC)) as monto_tx
-      from
-        pos
-      where
-        substring(rif, 3, 20) = cast({rif} AS TEXT) and mes in ({mes})
-      group by
-        substring(rif, 3, 20), mes, region'''.format(rif=st.session_state['RIF'], mes=mes)
-        
-    pos_client = conn.query(query, ttl='10m')
+    pos_client = st.session_state['POS']
+    pos_client = pos_client.query('mes in ({mes})'.format(mes=mes))
+    pos_client = pos_client[['rif','mes','region','monto_tx']].groupby(['rif','region','mes'])['monto_tx'].mean()
+    pos_client = pos_client.reset_index()
     pos_client = pos_client.groupby('region')['monto_tx'].mean()
     pos_client = pos_client.reset_index()
-    
-    if not pos_client.empty:
+    # query='''
+    # select
+    #     distinct substring(rif, 3, 20) as rif,
+    #     mes,
+    #     region,
+    #     avg(cast(mto_trs AS NUMERIC)) as monto_tx
+    #   from
+    #     pos
+    #   where
+    #     substring(rif, 3, 20) = cast({rif} AS TEXT) and mes in ({mes})
+    #   group by
+    #     substring(rif, 3, 20), mes, region'''.format(rif=st.session_state['RIF'], mes=mes)
+    #     
+    # pos_client = conn.query(query, ttl='10m')
+    # pos_client = pos_client.groupby('region')['monto_tx'].mean()
+    # pos_client = pos_client.reset_index()
+    try:
       cuentas_cli.loc[len(cuentas_cli.index)] = ['p o s', pos_client.iloc[0,1]]
+    except:
+      cuentas_cli.loc[len(cuentas_cli.index)] = ['p o s', 0]
     
-    # facturacion POS region
-    query='''
-    select
-        mes,
-        region,
-        avg(cast(mto_trs AS NUMERIC)) as monto_tx
-      from
-        pos
-      where
-        region = cast('{region}' AS TEXT) and mes in ({mes})
-      group by
-        mes, region'''.format(region=st.session_state['region'], mes=mes)
-    
-    pos_region = conn.query(query, ttl='10m')
-    pos_region = pos_region.groupby('region')['monto_tx'].mean()
-    pos_region = pos_region.reset_index()
-    
-    if pos_region.empty:
-      saldos_region.loc[len(saldos_region.index)] = ['p o s', 0]
-    else:
-      saldos_region.loc[len(saldos_region.index)] = ['p o s', pos_region.iloc[0,1]]
+  # facturacion POS region
+  query='''
+  select
+      mes,
+      region,
+      avg(cast(mto_trs AS NUMERIC)) as monto_tx
+    from
+      pos
+    where
+      region = cast('{region}' AS TEXT) and mes in ({mes})
+    group by
+      mes, region'''.format(region=st.session_state['region'], mes=mes)
   
-  except:
-    pass
+  pos_region = conn.query(query, ttl='10m')
+  pos_region = pos_region.groupby('region')['monto_tx'].mean()
+  pos_region = pos_region.reset_index()
+  
+  if pos_region.empty:
+    saldos_region.loc[len(saldos_region.index)] = ['p o s', 0]
+  else:
+    saldos_region.loc[len(saldos_region.index)] = ['p o s', pos_region.iloc[0,1]]
   
   # comparacion saldos cliente vs saldos promedio region
   def semaforo(df_cli, df_reg, column, col_saldo):
@@ -252,7 +288,10 @@ if 'cuentas_cli' in st.session_state:
         try:
           value = cuentas_cli.loc[(cuentas_cli['cuenta'] == k), 'saldo'].iloc[0]
           value = int(round(value,0))
-          value = f"{value:,d}"
+          if k == 'divisa_plus' or k == 'cuenta_m1':
+            value = f"$ {value:,d}"
+          else:
+            value = f"Bs {value:,d}"
           formato(string=text2, txt=value)
         except:
           formato(string=text2, txt='')
@@ -260,7 +299,10 @@ if 'cuentas_cli' in st.session_state:
         try:
           value = saldos_region.loc[(saldos_region['cuenta'] == k), 'saldo'].iloc[0]
           value = int(round(value,0))
-          value = f"{value:,d}"
+          if k == 'divisa_plus' or k == 'cuenta_m1':
+            value = f"$ {value:,d}"
+          else:
+            value = f"Bs {value:,d}"
           formato(string=text2, txt=value)
         except:
           formato(string=text2, txt='N/A')
@@ -290,6 +332,8 @@ if 'client_prod' in st.session_state:
     tabla_uso = tabla_uso.loc[:, tabla_uso.columns!='region']
     tabla_uso = tabla_uso.melt(var_name='clase', value_name='monto_total')
     client_prod = st.session_state['client_prod']
+    client_prod = client_prod.reset_index()
+    client_prod = client_prod.groupby('clase')['monto_total'].sum()
     client_prod = client_prod.reset_index()
     
     # comparativo de montos de servicios cliente vs la region
@@ -323,27 +367,32 @@ if 'client_prod' in st.session_state:
         formato(string=text1, h='h4', txt='Monto Región')
       
       for k in order_service:
+        serv = k
+        if serv == 'Intervencion':
+          serv = 'Intervención'
+        if serv == 'Nomina':
+          serv = 'Nómina'
         with col1:
           if resultado[k]=='green':
-            formato(string=text2, txt = k+' {color}'.format(color='🟢'))
+            formato(string=text2, txt = serv+' {color}'.format(color='🟢'))
           elif resultado[k]=='yellow':
-            formato(string=text2, txt = k+' {color}'.format(color='🟡'))
+            formato(string=text2, txt = serv+' {color}'.format(color='🟡'))
           elif resultado[k]=='red':
-            formato(string=text2, txt = k+' {color}'.format(color='🔴'))
+            formato(string=text2, txt = serv+' {color}'.format(color='🔴'))
           else:
-            formato(string=text2, txt = k+' {color}'.format(color='➖'))
+            formato(string=text2, txt = serv+' {color}'.format(color='➖'))
         with col2:
           try:
             value = client_prod.loc[(client_prod['clase'] == k), 'monto_total'].iloc[0]
             value = int(round(value,0))
-            value = f"{value:,d}"
+            value = f"Bs {value:,d}"
             formato(string=text2, txt=value)
           except:
             formato(string=text2, txt='')
         with col3:
           value = tabla_uso.loc[(tabla_uso['clase'] == k), 'monto_total'].iloc[0]
           value = int(round(value,0))
-          value = f"{value:,d}"
+          value = f"Bs {value:,d}"
           formato(string=text2, txt=value)
       # leyenda
       formato(string=text1, h='h4', txt='Leyenda')
@@ -357,3 +406,4 @@ if 'client_prod' in st.session_state:
   except:
     with st.container(border=True):
       formato(string=text2, txt='Región del cliente no coincide con ninguna región en la tabla')
+#st.write(st.session_state)

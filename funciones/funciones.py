@@ -1,22 +1,32 @@
 import streamlit as st
+from streamlit_extras.app_logo import add_logo
 
-# set background image
-def background():
-  background_image = """
-  <style>
-    [data-testid="stAppViewContainer"] > .main {
-    background-image: url("https://www.solidbackgrounds.com/images/3840x2160/3840x2160-pastel-blue-solid-color-background.jpg");
-    background-size: 100vw 100vh;  # This sets the size to cover 100% of the viewport width and height
-    background-position: left;  
-    background-repeat: no-repeat;
-    }
-  </style>"""
-  st.markdown(background_image, unsafe_allow_html=True)
+# set footer
+def footer():
+  # Set footer
+  footer = """<style>.footer {
+    position: fixed; left: 0.2; bottom: 0; width: 100%; height: 5%;
+    background:linear-gradient(to right, #69be28, #bed600);
+    float:left;}
+    .size{
+      width:6vw;
+      height:5vh;
+      float: left;
+      margin-top: 1px;
+      margin-bottom: 1px;
+      margin-left: 20px;}
+    </style>
+    <div class='footer'><p><img class='size' src="https://storage.googleapis.com/vikua-styles/banplus-styles/logo_banplus_blanco.png"/></p>
+    </div>
+    """
+  return st.markdown(footer, unsafe_allow_html=True)
   
 # set sidebar
 def sidebar():
-  st.sidebar.success('## Seleccione una opción️ ⬆️')
-  st.sidebar.image('static/banplus1.png', caption='Dashboard Banplus Banco Universal')
+  add_logo("https://storage.googleapis.com/vikua-styles/banplus-styles/logo_vikua_es_dark.png", height=172)
+  st.sidebar.success('### Seleccione una opción️ ⬆️')
+  st.markdown("<style> div[class^='css-1544g2n'] { padding-top: 1.5rem; } </style> ", unsafe_allow_html=True)
+  #st.logo('static/banplus1.png', icon_image='static/banplus2.png')
 
 # format
 def formato(string, h='h1', txt='', value=''):

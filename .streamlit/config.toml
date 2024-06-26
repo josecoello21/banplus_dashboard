@@ -1,10 +1,11 @@
 [theme]
 
-primaryColor="#0000CD"
-backgroundColor="#000058"
-secondaryBackgroundColor="#000058"
-textColor="#ffffff"
-font="sans serif"
+primaryColor="#0098db"
+backgroundColor="#ffffff"
+secondaryBackgroundColor="#c3c8c8"
+textColor="#00204E"
+font="myriad pro"
 
 [server]
-enableStaticServing = true
+#enableStaticServing = true
+runOnSave = true

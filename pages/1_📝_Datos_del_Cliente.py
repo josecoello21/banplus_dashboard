@@ -3,27 +3,52 @@ import pandas as pd
 import psycopg2 as sql
 from funciones.funciones import *
 
-st.set_page_config(page_title="Datos Cliente", page_icon="📝")
+st.set_page_config(page_title="Datos Cliente", page_icon="📝", layout="wide")
 
-# Set the background image
-background()
+# margin top
+st.markdown("<style> div[class^='block-container'] { padding-top: 2rem; } </style>", 
+            unsafe_allow_html=True)
+
+# set footer
+footer = """<style>.footer {
+  position: fixed; left: 0.2; bottom: 0; width: 100%; height: 5%;
+  background:linear-gradient(to right, #69be28, #bed600);
+  float:left;}
+  .size{
+    width:6vw;
+    height:5vh;
+    float: left;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    margin-left: 20px;}
+  </style>
+  <div class='footer'><p><img class='size' src="https://storage.googleapis.com/vikua-styles/banplus-styles/logo_banplus_blanco.png"/></p>
+  </div>
+"""
+st.markdown(footer, unsafe_allow_html=True)
 
 # set sidebar
 sidebar()
 
 # text format
-text1 = "<{h} style='text-align: left; color: #000058;'>{txt}</{h}>"
-text2 = '<span style="color:#000058">**{txt}:** {value}</span>'
-text3 = '<span style="color:#000058">{txt}</span>'
+text1 = "<{h} style='text-align: left; color: #00204E;'>{txt}</{h}>"
+text2 = '<span style="color:#00204E">**{txt}:** {value}</span>'
+text3 = '<span style="color:#00204E">{txt}</span>'
 
 # main screen
 col1, col2 = st.columns(2)
 with col1:
-  formato(string=text1, h='h1', txt="Vicepresidencia de Estrategia y Administración🔎")
-  formato(string=text1, h='h3', txt='Control de Gestión')
-  
+  st.image('https://storage.googleapis.com/vikua-styles/banplus-styles/banplus2.png')
 with col2:
-  st.image('static/banplus2.png',use_column_width = True)
+  header = """
+  <style>.img{
+    float: right;
+  }
+  </style>
+  <p><img class = 'img' src='https://storage.googleapis.com/vikua-styles/banplus-styles/header.jpg'></p>"""
+  st.markdown(header, unsafe_allow_html=True)
+  
+st.title("Tablero de Control de Gestión")
   
 col1, col2, col3 = st.columns(3)
 
@@ -47,6 +72,16 @@ conn = st.connection("postgresql", type="sql")
 
 # validacion de rif para realizar la consulta
 if 'RIF' in st.session_state:
+  # hidden footer
+  hide_footer_style = """
+  <style>
+  .footer {
+  display: none;
+  }
+  </style>
+  """
+  st.markdown(hide_footer_style, unsafe_allow_html=True)
+  
   # datos a mostrar
   campos=['Región','Gerente Ejecutivo','Oficina',
           'Grupo Económico','Telefono','Mail','Mail Accionista']
